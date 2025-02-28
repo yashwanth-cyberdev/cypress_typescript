@@ -21,7 +21,7 @@ jobs:
         run: npm install
 
       - name: Run Cypress in Parallel
-        run: npx cypress run --record --parallel --ci-build-id $GITHUB_RUN_ID --group shard-${{ matrix.shard }}
+        run: npx cypress run --record --key a8bc3cad-15d0-4e3a-9b5e-ff6ca9eecb50 --parallel --ci-build-id $GITHUB_RUN_ID --group shard-${{ matrix.shard }}
 
       - name: Upload Test Results (Artifacts)
         uses: actions/upload-artifact@v4
