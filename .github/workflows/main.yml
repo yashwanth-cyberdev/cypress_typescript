@@ -1,0 +1,79 @@
+name: Cypress Parallel Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  cypress-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        shard: [1, 2, 3] # Number of parallel shards
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run Cypress in Parallel
+        run: npx cypress run --record --parallel --ci-build-id $GITHUB_RUN_ID --group shard-${{ matrix.shard }}
+
+      - name: Upload Test Results (Artifacts)
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-results-${{ matrix.shard }}
+          path: cypress/results
+
+  merge-results:
+    needs: cypress-tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download Cypress Results
+        uses: actions/download-artifact@v4
+        with:
+          path: merged-results
+
+      - name: Merge Cypress Results
+        run: |
+          mkdir -p final-results
+          jq -s 'reduce .[] as $item ({}; . + $item)' merged-results/*/mochawesome.json > final-results/merged-mochawesome.json
+
+      - name: Upload Merged Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: merged-cypress-results
+          path: final-results
+
+  notify-slack:
+    needs: merge-results
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Merged Results
+        uses: actions/download-artifact@v4
+        with:
+          name: merged-cypress-results
+          path: merged-results
+
+      - name: Extract Test Summary
+        id: test-summary
+        run: |
+          PASSED=$(jq '[.results[] | select(.state == "passed")] | length' merged-results/merged-mochawesome.json)
+          FAILED=$(jq '[.results[] | select(.state == "failed")] | length' merged-results/merged-mochawesome.json)
+          echo "PASSED=$PASSED" >> $GITHUB_ENV
+          echo "FAILED=$FAILED" >> $GITHUB_ENV
+
+    #   - name: Send Results to Slack
+    #     uses: slackapi/slack-github-action@v1.24.0
+    #     with:
+    #       channel-id: "C085U6YUP4N"
+    #       slack-message: "Cypress Test Results:\n✅ Passed: ${{ env.PASSED }}\n❌ Failed: ${{ env.FAILED }}"
+    #     env:
+    #       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
