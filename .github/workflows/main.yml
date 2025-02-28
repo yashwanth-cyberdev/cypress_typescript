@@ -48,7 +48,7 @@ jobs:
           CYPRESS_MOCHAWESOME_REPORT_DIR: cypress/reports/mochawesome-report
 
       - name: Save test report artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: cypress-report-${{ strategy.job-index }}
           path: cypress/reports
@@ -73,7 +73,7 @@ jobs:
         run: npm ci
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: cypress-reports
 
@@ -95,7 +95,7 @@ jobs:
           marge merged-reports/merged.json -f report -o merged-reports
 
       - name: Upload merged report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: cypress-merged-report
           path: merged-reports
